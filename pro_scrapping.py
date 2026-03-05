@@ -77,12 +77,12 @@ def coletar_pagina(start):
                 except:
                     pass
 
-            time.sleep(random.uniform(1,3))
+            time.sleep(random.uniform(3,7))
 
             return pagina_produtos
 
         except:
-            time.sleep(random.uniform(1,3))
+            time.sleep(random.uniform(3,7))
 
     return []
 
@@ -107,7 +107,7 @@ with ThreadPoolExecutor(max_workers=10) as executor:
 print("Total coletado:", len(produtos))
 
 
-with open("produtos_mercadolivre.json", "w", encoding="utf-8") as f:
+with open(f"{produto}_mercadolivre.json", "w", encoding="utf-8") as f:
 
     json.dump(produtos, f, indent=4, ensure_ascii=False)
 
