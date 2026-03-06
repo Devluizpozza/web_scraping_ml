@@ -31,6 +31,7 @@ PROXY_POOL = carregar_proxies()
 
 print("Proxies carregados:", len(PROXY_POOL))
 
+print("Json criado")
 
 def coletar_pagina(start):
 
@@ -107,5 +108,6 @@ with open(f"{produto}_mercadolivre.json", "w", encoding="utf-8") as f:
 
     json.dump(produtos, f, indent=4, ensure_ascii=False)
 
+print("Json criado")
 
 print("Scraping finalizado")
