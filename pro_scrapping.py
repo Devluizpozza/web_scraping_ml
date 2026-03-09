@@ -30,73 +30,70 @@ def coletar_pagina(start):
         "Accept-Language": "pt-BR,pt;q=0.9"
     }
 
-    for tentativa in range(3):
+    try:
 
-        try:
+        r = session.get(url, headers=headers, timeout=10)
 
-            r = session.get(url, headers=headers, timeout=10)
+        if r.status_code != 200:
+            return []
 
-            if r.status_code != 200:
-                time.sleep(2)
-                continue
+        soup = BeautifulSoup(r.content, "lxml")
 
-            soup = BeautifulSoup(r.content, "lxml")
+        # container principal dos produtos
+        items = soup.select("li.ui-search-layout__item")
 
-            items = soup.select("li.ui-search-layout__item")
+        pagina_produtos = []
 
-            # detector de bloqueio ou fim das páginas
-            if len(items) == 0:
-                print("Possível bloqueio ou fim das páginas. Aguardando 2 minutos...")
-                time.sleep(120)
-                return coletar_pagina(start)
+        for item in items:
 
-            pagina_produtos = []
+            try:
 
-            for item in items:
+                # titulo (algumas vezes h2, outras h3)
+                titulo_tag = item.select_one("h2, h3")
+                titulo = titulo_tag.get_text(strip=True) if titulo_tag else None
 
-                try:
+                # link
+                link_tag = item.select_one("a.ui-search-link") or item.select_one("a")
+                link = link_tag["href"] if link_tag else None
 
-                    titulo = item.select_one("h3").get_text(strip=True)
+                # preço atual
+                preco_tag = item.select_one("span.andes-money-amount__fraction")
+                preco = preco_tag.get_text(strip=True) if preco_tag else None
 
-                    link = item.select_one("a")["href"]
+                # preço antigo
+                preco_antigo_tag = item.select_one("s span.andes-money-amount__fraction")
+                preco_antigo = preco_antigo_tag.get_text(strip=True) if preco_antigo_tag else None
 
-                    preco = item.select_one("span.andes-money-amount__fraction")
-                    preco = preco.get_text(strip=True) if preco else None
+                # desconto
+                desconto_tag = item.select_one("span.andes-money-amount__discount")
+                desconto = desconto_tag.get_text(strip=True) if desconto_tag else None
 
-                    preco_antigo = item.select_one("s .andes-money-amount__fraction")
-                    preco_antigo = preco_antigo.get_text(strip=True) if preco_antigo else None
+                pagina_produtos.append({
+                    "titulo": titulo,
+                    "preco": preco,
+                    "preco_antigo": preco_antigo,
+                    "desconto": desconto,
+                    "link": link
+                })
 
-                    desconto = item.select_one("span.andes-money-amount__discount")
-                    desconto = desconto.get_text(strip=True) if desconto else None
+            except:
+                pass
 
-                    pagina_produtos.append({
-                        "titulo": titulo,
-                        "preco": preco,
-                        "preco_antigo": preco_antigo,
-                        "desconto": desconto,
-                        "link": link
-                    })
+        time.sleep(random.uniform(3, 7))
 
-                except:
-                    pass
+        return pagina_produtos
 
-            time.sleep(random.uniform(3, 7))
-
-            return pagina_produtos
-
-        except:
-            time.sleep(random.uniform(3, 7))
-
-    return []
+    except:
+        time.sleep(random.uniform(3, 7))
+        return []
 
 
 print("Iniciando scraping...")
 
-# offsets de paginação (48 produtos por página)
+# paginação (48 produtos por página)
 offsets = list(range(1, 700, 48))
 
-
-with ThreadPoolExecutor(max_workers=4) as executor:
+with ThreadPoolExecutor(max_workers=3) as executor:
 
     futures = [executor.submit(coletar_pagina, offset) for offset in offsets]
 
@@ -107,12 +104,9 @@ with ThreadPoolExecutor(max_workers=4) as executor:
         if resultado:
             produtos.extend(resultado)
 
-
 print("Total coletado:", len(produtos))
-
 
 with open(f"{produto}_mercadolivre.json", "w", encoding="utf-8") as f:
     json.dump(produtos, f, indent=4, ensure_ascii=False)
-
 
 print("JSON salvo com sucesso.")
